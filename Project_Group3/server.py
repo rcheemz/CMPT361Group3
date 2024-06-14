@@ -152,10 +152,16 @@ def send_email(connectionSocket, sender):
         recipient_folder = os.path.join("server", recipient)
         if not os.path.exists(recipient_folder):
             os.makedirs(recipient_folder)
-        #add email to JSON database
-        email_file = os.path.join(recipient_folder, f"{sender}_{title}.json")
+        
+        #create the filename and save the email as a text file
+        email_file = os.path.join(recipient_folder, f"{sender}_{title}.txt")
         with open(email_file, "w") as f:
-            json.dump(email, f)
+            f.write(f"From: {email['from']}\n")
+            f.write(f"To: {', '.join(email['to'])}\n")
+            f.write(f"Time and Date Received: {email['timestamp']}\n")
+            f.write(f"Title: {email['title']}\n")
+            f.write(f"Content Length: {len(email['content'])}\n")
+            f.write(f"Contents:\n{email['content']}\n")
 
     connectionSocket.send(b"Email sent successfully.")
 
@@ -182,10 +188,16 @@ def view_inbox(connectionSocket, username):
     email_list = "Index From      DateTime                     Title\n"
     for idx, email in enumerate(emails):
         email_info = email.split('_')
+        sender = email_info[0]
         title = email_info[1].split('.')[0]
-        with open(os.path.join(inbox_folder, email), "r") as f:
-            email_content = json.load(f)
-        email_list += f"{idx+1:2} {email_content['from']:8} {email_content['timestamp']:28} {title}\n"
+        email_file = os.path.join(inbox_folder, email)
+        timestamp = "N/A"
+        with open(email_file, "r") as f:
+            for line in f:
+                if line.startswith("Time and Date Received: "):
+                    timestamp = line[len("Time and Date Received: "):].strip()
+                    break
+        email_list += f"{idx+1:5} {sender:8} {timestamp:28} {title}\n"
     
     connectionSocket.send(email_list.encode())
 
@@ -218,15 +230,7 @@ def view_email(connectionSocket, username):
     email_file = os.path.join(inbox_folder, emails[email_index])
     
     with open(email_file, "r") as f:
-        email_content = json.load(f)
-    response = (
-        f"\nFrom: {email_content['from']}\n"
-        f"To: {', '.join(email_content['to'])}\n"
-        f"Time and Date Received: {email_content['timestamp']}\n"
-        f"Title: {email_content['title']}\n"
-        f"Content Length: {len(email_content['content'])}\n"
-        f"Contents:\n{email_content['content']}\n"
-    )
+        email_content = f.read()
     connectionSocket.send(response.encode())
     
 #---------------------
