@@ -7,14 +7,14 @@ Rimneet Cheema
 
 Jamie McDonald
 
-## Relase build b0.01
+## Relase build b0.03
 
 ## Known Issues as of this release:
 
-- working on server.py
-- client not implemented at all
+- Working on Encryption
 
 ## Updates
+b0.03 - Handle Client Logic implemented
 
 b0.02 - Started server.py - Load User Credentials
 
