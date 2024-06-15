@@ -69,9 +69,6 @@ def server():
                 os._exit(0)
             else:
                 connectionSocket.close()
-                serverSocket.close()
-                handle_client(connectionSocket, credentials)
-                os._exit(0)
 
         except socket.error as e:
             print('Server: An error occurred:', e)
@@ -182,7 +179,6 @@ def send_email(connectionSocket, sender):
         recipient_folder = os.path.join("server", recipient)
         if not os.path.exists(recipient_folder):
             os.makedirs(recipient_folder)
-            
         #create the filename and save the email as a text file
         email_file = os.path.join(recipient_folder, f"{sender}_{title}.txt")
         with open(email_file, "w") as f:
@@ -218,10 +214,16 @@ def view_inbox(connectionSocket, username):
     email_list = "Index From      DateTime                     Title\n"
     for idx, email in enumerate(emails):
         email_info = email.split('_')
+        sender = email_info[0]
         title = email_info[1].split('.')[0]
-        with open(os.path.join(inbox_folder, email), "r") as f:
-            email_content = json.load(f)
-        email_list += f"{idx+1:2} {email_content['from']:8} {email_content['timestamp']:28} {title}\n"
+        email_file = os.path.join(inbox_folder, email)
+        timestamp = "N/A"
+        with open(email_file, "r") as f:
+            for line in f:
+                if line.startswith("Time and Date Received: "):
+                    timestamp = line[len("Time and Date Received: "):].strip()
+                    break
+        email_list += f"{idx+1:5} {sender:8} {timestamp:28} {title}\n"
     
     connectionSocket.send(email_list.encode())
 
@@ -254,16 +256,8 @@ def view_email(connectionSocket, username):
     email_file = os.path.join(inbox_folder, emails[email_index])
     
     with open(email_file, "r") as f:
-        email_content = json.load(f)
-    response = (
-        f"\nFrom: {email_content['from']}\n"
-        f"To: {', '.join(email_content['to'])}\n"
-        f"Time and Date Received: {email_content['timestamp']}\n"
-        f"Title: {email_content['title']}\n"
-        f"Content Length: {len(email_content['content'])}\n"
-        f"Contents:\n{email_content['content']}\n"
-    )
-    connectionSocket.send(response.encode())
+        email_content = f.read()
+    connectionSocket.send(email_content.encode())
     
 #---------------------
 
