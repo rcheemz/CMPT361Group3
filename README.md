@@ -14,9 +14,10 @@ Jamie McDonald
 - Working on Encryption
 
 ## Updates
-b0.03 - Handle Client Logic implemented
 
 b1.00 - implemented AES key
+
+b0.03 - Handle Client Logic implemented
 
 b0.02 - Started server.py - Load User Credentials
 
