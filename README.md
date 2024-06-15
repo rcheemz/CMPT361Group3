@@ -11,8 +11,10 @@ Jamie McDonald
 
 ## Known Issues as of this release:
 
+- Working on Encryption
 
 ## Updates
+b0.03 - Handle Client Logic implemented
 
 b1.00 - implemented AES key
 

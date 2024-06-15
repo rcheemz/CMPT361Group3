@@ -69,6 +69,11 @@ def server():
                 os._exit(0)
             else:
                 connectionSocket.close()
+                serverSocket.close()
+                handle_client(connectionSocket, credentials)
+                os._exit(0)
+            else:
+                connectionSocket.close()
 
         except socket.error as e:
             print('Server: An error occurred:', e)
