@@ -257,7 +257,7 @@ def view_email(connectionSocket, username):
     
     with open(email_file, "r") as f:
         email_content = f.read()
-    connectionSocket.send(response.encode())
+    connectionSocket.send(email_content.encode())
     
 #---------------------
 
