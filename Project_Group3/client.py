@@ -20,11 +20,15 @@ def client():
     #authentication process
     print(client_socket.recv(2048).decode(), end='')
     username = input()
-    client_socket.send(username.encode())
+    client_socket.send((username + '\n').encode())
 
     print(client_socket.recv(2048).decode(), end='') 
     password = input()
-    client_socket.send(password.encode())
+    client_socket.send((password + '\n').encode())
+
+    # Receive the symmetric key from the server
+    sym_key = client_socket.recv(32)
+    print(f"Client: Received symmetric key: {sym_key.hex()}") # REMOVE ME LATER!!!!!!!!!!!!!!!!!! BAD BAD BAD !!!!!
 
     #check authentication response
     response = client_socket.recv(2048).decode().strip()
@@ -39,7 +43,7 @@ def client():
         menu = client_socket.recv(2048).decode().strip()
         print(menu)
         choice = input("choice: ")
-        client_socket.send(choice.encode())
+        client_socket.send((choice + '\n').encode())
 
         if choice == "1":
             #call function for send email
@@ -108,4 +112,5 @@ def view_email(client_socket):
 
 
 #-------------
-client()
+if __name__ == "__main__":
+    client()

@@ -12,31 +12,44 @@ server.py
 import socket
 import os
 import json
+import sys
 from datetime import datetime
 
+from Cryptodome.Random import get_random_bytes
+
+def generate_symmetric_key():
+    return get_random_bytes(32)  # 32 bytes * 8 = 256 bits
+
 def server():
+    print("Server: Starting the server function")
     # Server port
     serverPort = 13000
+    print(f"Server: Server port: {serverPort}")
 
     # Load user credentials
     with open('user_pass.json', 'r') as f:
         credentials = json.load(f)
+    print("Server: Loaded user credentials")
 
     # Create server socket that uses IPv4 and TCP protocols
     try:
+        print("Server: Creating server socket")
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print("Server: Server socket created successfully")
     except socket.error as e:
-        print('Error in server socket creation:', e)
+        print('Server: Error in server socket creation:', e)
         sys.exit(1)
 
-    # Associate 12000 port number to the server socket
+    # Associate 13000 port number to the server socket
     try:
+        print("Server: Binding server socket to port")
         serverSocket.bind(('', serverPort))
+        print("Server: Server socket bound successfully")
     except socket.error as e:
-        print('Error in server socket binding:', e)
+        print('Server: Error in server socket binding:', e)
         sys.exit(1)
 
-    print('The server is ready to accept connections')
+    print('Server: The server is ready to accept connections')
 
     # The server can only have one connection in its queue waiting for acceptance
     serverSocket.listen(5)
@@ -45,6 +58,7 @@ def server():
         try:
             # Server accepts client connection
             connectionSocket, addr = serverSocket.accept()
+            print(f"Server: Accepted connection from {addr}")
             print(addr, '   ', connectionSocket)
             pid = os.fork()  # implement forking method from lab 7 to create multiple connections 
 
@@ -55,30 +69,48 @@ def server():
                 os._exit(0)
             else:
                 connectionSocket.close()
+                serverSocket.close()
+                handle_client(connectionSocket, credentials)
+                os._exit(0)
+            else:
+                connectionSocket.close()
 
         except socket.error as e:
-            print('An error occurred:', e)
+            print('Server: An error occurred:', e)
             serverSocket.close()
             sys.exit(1)
         except:
-            print('Goodbye')
+            print('Server: Goodbye')
             serverSocket.close()
             sys.exit(0)
+
+
 
 def handle_client(connectionSocket, users):
     '''
     Handle the client connection
     parameters(the connetion socket, autorized users from json database)
     '''
+    
     try:
         #server sends client credentials prompts and recieves/saves them accordingly
         connectionSocket.send(b"Enter your username: ")
-        username = connectionSocket.recv(2048).decode().strip()
+        print("Server: Sent username prompt")
+        username = connectionSocket.recv(1024).decode().strip()
+        print(f"Server: Received username: {username}")
         connectionSocket.send(b"Enter your password: ")
+        print("Server: Sent password prompt")
         password = connectionSocket.recv(2048).decode().strip()
+        print(f"Server: Received password: {password}")
         
         #check if the username is one of the users from the json database and the password matches
         if username in users and users[username] == password:
+            # Generate a 256-bit symmetric key
+            sym_key = get_random_bytes(32)
+            
+            # Send the symmetric key to the client
+            connectionSocket.send(sym_key)
+
             connectionSocket.send(b"Authentication successful.\n")
             menu = '''Select the operation:
      1) Create and send an email
@@ -152,16 +184,10 @@ def send_email(connectionSocket, sender):
         recipient_folder = os.path.join("server", recipient)
         if not os.path.exists(recipient_folder):
             os.makedirs(recipient_folder)
-        
-        #create the filename and save the email as a text file
-        email_file = os.path.join(recipient_folder, f"{sender}_{title}.txt")
+        #add email to JSON database
+        email_file = os.path.join(recipient_folder, f"{sender}_{title}.json")
         with open(email_file, "w") as f:
-            f.write(f"From: {email['from']}\n")
-            f.write(f"To: {', '.join(email['to'])}\n")
-            f.write(f"Time and Date Received: {email['timestamp']}\n")
-            f.write(f"Title: {email['title']}\n")
-            f.write(f"Content Length: {len(email['content'])}\n")
-            f.write(f"Contents:\n{email['content']}\n")
+            json.dump(email, f)
 
     connectionSocket.send(b"Email sent successfully.")
 
@@ -188,16 +214,10 @@ def view_inbox(connectionSocket, username):
     email_list = "Index From      DateTime                     Title\n"
     for idx, email in enumerate(emails):
         email_info = email.split('_')
-        sender = email_info[0]
         title = email_info[1].split('.')[0]
-        email_file = os.path.join(inbox_folder, email)
-        timestamp = "N/A"
-        with open(email_file, "r") as f:
-            for line in f:
-                if line.startswith("Time and Date Received: "):
-                    timestamp = line[len("Time and Date Received: "):].strip()
-                    break
-        email_list += f"{idx+1:5} {sender:8} {timestamp:28} {title}\n"
+        with open(os.path.join(inbox_folder, email), "r") as f:
+            email_content = json.load(f)
+        email_list += f"{idx+1:2} {email_content['from']:8} {email_content['timestamp']:28} {title}\n"
     
     connectionSocket.send(email_list.encode())
 
@@ -230,8 +250,18 @@ def view_email(connectionSocket, username):
     email_file = os.path.join(inbox_folder, emails[email_index])
     
     with open(email_file, "r") as f:
-        email_content = f.read()
+        email_content = json.load(f)
+    response = (
+        f"\nFrom: {email_content['from']}\n"
+        f"To: {', '.join(email_content['to'])}\n"
+        f"Time and Date Received: {email_content['timestamp']}\n"
+        f"Title: {email_content['title']}\n"
+        f"Content Length: {len(email_content['content'])}\n"
+        f"Contents:\n{email_content['content']}\n"
+    )
     connectionSocket.send(response.encode())
     
 #---------------------
-server()
+
+if __name__ == "__main__":
+    server()
