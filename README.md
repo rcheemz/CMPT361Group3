@@ -7,14 +7,14 @@ Rimneet Cheema
 
 Jamie McDonald
 
-## Relase build b0.01
+## Relase build b1.00
 
 ## Known Issues as of this release:
 
-- working on server.py
-- client not implemented at all
 
 ## Updates
+
+b1.00 - implemented AES key
 
 b0.02 - Started server.py - Load User Credentials
 
