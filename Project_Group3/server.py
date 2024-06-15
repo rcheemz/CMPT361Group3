@@ -72,8 +72,6 @@ def server():
                 serverSocket.close()
                 handle_client(connectionSocket, credentials)
                 os._exit(0)
-            else:
-                connectionSocket.close()
 
         except socket.error as e:
             print('Server: An error occurred:', e)
@@ -184,10 +182,16 @@ def send_email(connectionSocket, sender):
         recipient_folder = os.path.join("server", recipient)
         if not os.path.exists(recipient_folder):
             os.makedirs(recipient_folder)
-        #add email to JSON database
-        email_file = os.path.join(recipient_folder, f"{sender}_{title}.json")
+            
+        #create the filename and save the email as a text file
+        email_file = os.path.join(recipient_folder, f"{sender}_{title}.txt")
         with open(email_file, "w") as f:
-            json.dump(email, f)
+            f.write(f"From: {email['from']}\n")
+            f.write(f"To: {', '.join(email['to'])}\n")
+            f.write(f"Time and Date Received: {email['timestamp']}\n")
+            f.write(f"Title: {email['title']}\n")
+            f.write(f"Content Length: {len(email['content'])}\n")
+            f.write(f"Contents:\n{email['content']}\n")
 
     connectionSocket.send(b"Email sent successfully.")
 
