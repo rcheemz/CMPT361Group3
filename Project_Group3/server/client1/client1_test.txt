@@ -1,7 +1,0 @@
-From: client1
-To: client1
-Time and Date Received: 2024-06-16 01:53:28
-Title: test
-Content Length: 14
-Contents:
-this is a test

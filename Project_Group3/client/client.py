@@ -100,19 +100,23 @@ def client():
             encrypted_menu = client_socket.recv(2048)
             menu = aes_ecb_decrypt(encrypted_menu, sym_key).decode().strip()
             print(menu)
-            choice = input("choice: ")
+            print("")
+            choice = input("         choice: ")
             encrypted_choice = aes_ecb_encrypt(choice.encode(), sym_key)
             client_socket.send(encrypted_choice)
     
             if choice == "1":
                 #call function for send email
                 send_email(client_socket, sym_key)
+                print("")
             elif choice == "2":
                 #call function for view inbox
                 view_inbox(client_socket, sym_key)
+                print("")
             elif choice == "3":
                 #call function for view email
                 view_email(client_socket, sym_key)
+                print("")
             elif choice == "4":
                 #terminate connection on client side 
                 print("Connection terminated.")
