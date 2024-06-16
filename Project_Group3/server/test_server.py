@@ -76,7 +76,7 @@ class TestServer(unittest.TestCase):
                     print(f"Client: Sent password: {password}", flush=True)
                     # Receive the symmetric key from the server
                     sym_key = self.clientSocket.recv(32)
-                    print(f"Client: Received symmetric key: {sym_key.hex()}")
+                    print(f"Client: Received symmetric key: {sym_key.hex()}") # REMOVE THIS LATER BAD BAD BAD
                     break
                 elif message == "Authentication successful.\n":
                     print("Client: Authentication successful.")
