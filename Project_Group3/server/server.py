@@ -20,27 +20,65 @@ from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
 
 def load_server_private_key():
+    '''
+    this function will open and read the server public key
+    that is in the client folder
+    '''
     with open("server_private.pem", "rb") as f:
         server_private_key = RSA.import_key(f.read())
     return server_private_key
 
 def load_client_public_key(username):
+    '''
+    this function will open and read the specific clients private key
+    from their client folder
+    '''
     with open(os.path.join("keys", f"{username}_public.pem"), "rb") as f:
         client_public_key = RSA.import_key(f.read())
     return client_public_key
 
 def rsa_encrypt_message(message, public_key):
+    '''
+    this function will encrypt using RSA
+    public key encryption
+    
+    parameters:
+    message (str)
+    public_key (RSA key): The RSA public key used to encrypt the credentials
+    
+    return: the encrytped message as bytes
+    '''
     cipher = PKCS1_OAEP.new(public_key)
     encrypted_message = cipher.encrypt(message)
     return encrypted_message
 
 def rsa_decrypt_message(encrypted_message, private_key):
+    '''
+    this function will decrypt an RSA encrypted message using private key
+    
+    parameters:
+    encrypted_message (bytes): the encrypted message to be decrypted
+    private_key (RSA key): the RSA private key used to decrypt the message
+    
+    return: the decrypted message as string
+    '''
+    #initalize a cipher object using "PKCS1_0AEP" and private key
     cipher = PKCS1_OAEP.new(private_key)
+    #decrypt using cipher object
     decrypted_message = cipher.decrypt(encrypted_message)
-    return decrypted_message
+    return decrypted_message    
 
 
 def decrypt_credentials(encrypted_credentials, private_key):
+    '''
+    this function will decrypt an RSA encrypted message using private key
+    
+    parameters:
+    encrypted_credentials (bytes): the encrypted message to be decrypted
+    private_key (RSA key): the RSA private key used to decrypt the message
+    
+    return: the decrypted username and password as string
+    '''
     cipher = PKCS1_OAEP.new(private_key)
     decrypted_credentials = cipher.decrypt(encrypted_credentials)
     username, password = decrypted_credentials.decode().split(',')
@@ -48,48 +86,74 @@ def decrypt_credentials(encrypted_credentials, private_key):
 
 
 def generate_symmetric_key():
+    '''
+    this function will generate sym key for AES encryption
+    return symmetric key
+    '''    
     return get_random_bytes(32)  # 32 bytes * 8 = 256 bits
 
 def aes_ecb_encrypt(message, key):
+    '''
+    this function will encrpyt a message using AES encryption in ECB mode
+    
+    parameters:
+    message (string): the plaintext message to be encrypted
+    key (bytes): the key used for AES encryption
+
+    returns:the encrypted message (ciphertext) in bytes
+    '''   
+    #initalize an AES cipher object in ECB mode with key
     cipher = AES.new(key, AES.MODE_ECB)
+    #pad message and ecrypt using cipher object
     ciphertext = cipher.encrypt(pad(message, AES.block_size))
     return ciphertext
 
 def aes_ecb_decrypt(ciphertext, key):
+    '''
+    this function will decrpyt a message using AES encryption in ECB mode
+    
+    parameters:
+    ciphertext (string): the encrypted message to be decrpyted
+    key (bytes): the key used for AES encryption
+
+    returns: plaintext (string)
+    '''     
+    #initalize an AES cipher object in ECB mode with key
     cipher = AES.new(key, AES.MODE_ECB)
+    #decrypt using cipher object and then unpad message
     plaintext = unpad(cipher.decrypt(ciphertext), AES.block_size)
     return plaintext
 
 def server():
-    print("Server: Starting the server function")
-    # Server port
+    '''
+    this is the main function for the server
+    '''    
+    #server port
     serverPort = 13000
-    print(f"Server: Server port: {serverPort}")
 
-    # Load user credentials
+
+    #load user credentials
     with open('user_pass.json', 'r') as f:
         credentials = json.load(f)
-    print("Server: Loaded user credentials")
+   
 
     # Create server socket that uses IPv4 and TCP protocols
     try:
-        print("Server: Creating server socket")
         serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("Server: Server socket created successfully")
     except socket.error as e:
         print('Server: Error in server socket creation:', e)
         sys.exit(1)
 
     # Associate 13000 port number to the server socket
     try:
-        print("Server: Binding server socket to port")
+        
         serverSocket.bind(('', serverPort))
-        print("Server: Server socket bound successfully")
+
     except socket.error as e:
         print('Server: Error in server socket binding:', e)
         sys.exit(1)
 
-    print('Server: The server is ready to accept connections')
+    print('The server is ready to accept connections')
 
     # The server can only have one connection in its queue waiting for acceptance
     serverSocket.listen(5)
@@ -98,9 +162,7 @@ def server():
         try:
             # Server accepts client connection
             connectionSocket, addr = serverSocket.accept()
-            print(f"Server: Accepted connection from {addr}")
-            print(addr, '   ', connectionSocket)
-            pid = os.fork()  # implement forking method from lab 7 to create multiple connections 
+            pid = os.fork()  
 
             # If it is a client process
             if pid == 0:
@@ -128,9 +190,11 @@ def handle_client(connectionSocket, users):
     '''
     
     try:
-        #server sends client credentials prompts and recieves/saves them accordingly
+        #server recieves encrypted credentials from client
         encrypted_credentials = connectionSocket.recv(2048)
+        #load server private key
         server_private_key = load_server_private_key()
+        #decrypt username and password
         username, password = decrypt_credentials(encrypted_credentials, server_private_key)
 
         
@@ -142,13 +206,12 @@ def handle_client(connectionSocket, users):
             client_public_key = load_client_public_key(username)
             
             # Generate a symmetric key
-            sym_key = generate_symmetric_key()            
-            
+            sym_key = generate_symmetric_key()
+
                         
             #encrypt the symmetric key with the client's public key
             rsa_encrypted_sym_key = rsa_encrypt_message(sym_key, client_public_key)
-
-            print(f"Server: Encrypted message length: {len(rsa_encrypted_sym_key)}")  # Debugging line
+            print(f"Connection Accepted and Symmetric Key Generated for client: {username}")
             
             #send the encrypted message to the client
             connectionSocket.send(rsa_encrypted_sym_key)          
@@ -169,9 +232,11 @@ def handle_client(connectionSocket, users):
                 #loop for menu
                 while True:
                     
+                    #encrypt menu and send
                     encrypted_menu = aes_ecb_encrypt(menu.encode(), sym_key)
                     connectionSocket.send(encrypted_menu) 
                     
+                    #recieve choice and decrypt
                     encrypted_choice = connectionSocket.recv(2048)
                     choice = aes_ecb_decrypt(encrypted_choice, sym_key).decode().strip()
                     
@@ -186,6 +251,7 @@ def handle_client(connectionSocket, users):
                         view_email(connectionSocket, username, sym_key)
                     elif choice == "4":
                         connectionSocket.send(aes_ecb_encrypt(b"Connection terminated.", sym_key))
+                        print(f"Terminating connection with {username}")
                         break
                     else:
                         connectionSocket.send(aes_ecb_encrypt(b"Invalid choice. Try again.", sym_key))
@@ -210,7 +276,7 @@ def send_email(connectionSocket, sender, sym_key):
     parameters(the connetion socket, the user sending the email)
     '''
     
-    #prompt user for email information
+    #prompt user for email information using encyrption
     connectionSocket.send(aes_ecb_encrypt(b"Enter recipient(s) (separated by ;): ", sym_key))
     recipients = aes_ecb_decrypt(connectionSocket.recv(2048), sym_key).decode().strip().split(';')
     connectionSocket.send(aes_ecb_encrypt(b"Enter title: ", sym_key))
@@ -244,18 +310,21 @@ def send_email(connectionSocket, sender, sym_key):
             f.write(f"Contents:\n{email['content']}\n")
 
     connectionSocket.send(aes_ecb_encrypt(b"Email sent successfully.", sym_key))
+    print(f"An email from {sender} is sent to {recipients} has a content length of {len(email['content'])}")  
 
 
 
 def view_inbox(connectionSocket, username, sym_key):
     '''
     This function will show the contents of saved email in clients JSON database
-    parameters(the connetion socket, autorized username from json database)
+    parameters(the connetion socket, autorized username from json database, key)
     '''
+    
     #find inbox folder for client if none then just say no emails found
     inbox_folder = os.path.join(username)
     if not os.path.exists(inbox_folder):
-        connectionSocket.send(b"No emails found.")
+        print("Inbox folder does not exist.")
+        connectionSocket.send(aes_ecb_encrypt(b"Inbox is empty.", sym_key))
         return
     
     #find emails in database if none say no emails found
@@ -279,14 +348,16 @@ def view_inbox(connectionSocket, username, sym_key):
                     break
         email_list += f"{idx+1:5} {sender:8} {timestamp:28} {title}\n"
     
-    connectionSocket.send(aes_ecb_encrypt(email_list.encode(), sym_key))
-
-
+    #send encrytped email list
+    encrypted_email_list = aes_ecb_encrypt(email_list.encode(), sym_key)
+    connectionSocket.send(encrypted_email_list) 
+    
+    
 
 def view_email(connectionSocket, username, sym_key):
     '''
     This function will show you the content of the emails
-    parameters(the connetion socket, autorized username from json database)
+    parameters(the connetion socket, autorized username from json database, key)
     '''
     #prompt user for index of email they want to view
     prompt = "Enter email index to view: "
@@ -298,7 +369,6 @@ def view_email(connectionSocket, username, sym_key):
     if not email_index.isdigit():
         error_message = "Invalid email index"
         connectionSocket.send(aes_ecb_encrypt(pad(error_message.encode(), AES.block_size), sym_key))
-        connectionSocket.close()
         return
     
     email_index = int(email_index) - 1
@@ -315,6 +385,7 @@ def view_email(connectionSocket, username, sym_key):
     #find email and open file and read and send content to user
     email_file = os.path.join(inbox_folder, emails[email_index])
     
+    #open and read and encrpyt email then send to client
     with open(email_file, "r") as f:
         email_content = f.read()
     connectionSocket.send(aes_ecb_encrypt(email_content.encode(), sym_key))
