@@ -6,44 +6,99 @@ Jamie McDonald
 This program will generate key pairs for the server and clients
 '''
 
+'''
+When running this is the folder formatting it follows
+server/
+├── server_public.pem
+├── server_private.pem
+├── user_pass.json
+├── server.py
+├── keys/
+≈   ├── client1_public.pem
+│   ├── client2_public.pem
+│   ├── client3_public.pem
+│   ├── client4_public.pem
+│   └── client5_public.pem
+├── client1/
+│   ├── email files...
+├── client2/
+│   ├── email files...
+├── client3/
+│   ├── email files...
+├── client4/
+│   ├── email files...
+└── client5/
+    ├── email files...
+    
+for the client
+client/
+├── server_public.pem
+├── client_client1/
+|   ├── client1_public.pem
+|   ├── client1_private.pem
+├── client_client2/
+|   ├── client1_public.pem
+|   ├── client1_private.pem
+├── client_client3/
+|   ├── client1_public.pem
+|   ├── client1_private.pem
+├── client_client4/
+|   ├── client1_public.pem
+|   ├── client1_private.pem
+├── client_client5/
+|   ├── client1_public.pem
+|   ├── client1_private.pem
+'''
+
 from Crypto.PublicKey import RSA
 import os
 
-#initialize directory to store keys
-key_dir = "keys"
-#if there is no directory named key_dir that exists
-if not os.path.exists(key_dir):
-    #then make the directory 
-    os.makedirs(key_dir)
+# Directory to store keys on the server
+server_key_dir = "server"
+if not os.path.exists(server_key_dir):
+    os.makedirs(server_key_dir)
 
-#generate server keys, 2048 bit key pairs
+# Generate server keys
 server_key = RSA.generate(2048)
+with open(os.path.join(server_key_dir, "server_public.pem"), "wb") as f:
+    f.write(server_key.publickey().export_key())
+with open(os.path.join(server_key_dir, "server_private.pem"), "wb") as f:
+    f.write(server_key.export_key())
 
-#counstructs the path for servers public key file, opens file in write binary mode
-#the writes the servers public key to the file in PEM format
-with open(os.path.join(key_dir, "server_public.pem"), "wb") as f:
-    f.write(server_key.publickey().export_key("PEM"))
- 
-#counstructs the path for servers private key file, opens file in write binary mode
-#the writes the servers private key to the file in PEM format    
-with open(os.path.join(key_dir, "server_private.pem"), "wb") as f:
-    f.write(server_key.export_key("PEM"))
-
-
-#make a list contain the names of the clients
+# Known clients
 clients = ["client1", "client2", "client3", "client4", "client5"]
 
-#loop over each client 
+# Generate keys for each client and create their directories
 for client in clients:
-    #generate keys for each client, 048 bit key pairs
     client_key = RSA.generate(2048)
+    client_key_dir = os.path.join(server_key_dir, "keys")
+    if not os.path.exists(client_key_dir):
+        os.makedirs(client_key_dir)
     
-    #counstructs the path for client public key file, opens file in write binary mode
-    #the writes the clients public key to the file in PEM format    
-    with open(os.path.join(key_dir, f"{client}_public.pem"), "wb") as f:
-        f.write(client_key.publickey().export_key("PEM"))
+    with open(os.path.join(client_key_dir, f"{client}_public.pem"), "wb") as f:
+        f.write(client_key.publickey().export_key())
     
-    #counstructs the path for client public key file, opens file in write binary mode
-    #the writes the client public key to the file in PEM format    
-    with open(os.path.join(key_dir, f"{client}_private.pem"), "wb") as f:
-        f.write(client_key.export_key("PEM"))
+    client_folder = os.path.join(server_key_dir, client)
+    if not os.path.exists(client_folder):
+        os.makedirs(client_folder)
+
+    # Create a client-side directory structure
+    client_side_dir = "client"
+    if not os.path.exists(client_side_dir):
+        os.makedirs(client_side_dir)
+    
+    client_specific_dir = os.path.join(client_side_dir, f"client_{client}")
+    if not os.path.exists(client_specific_dir):
+        os.makedirs(client_specific_dir)
+    
+    with open(os.path.join(client_specific_dir, f"{client}_private.pem"), "wb") as f:
+        f.write(client_key.export_key())
+    with open(os.path.join(client_specific_dir, f"{client}_public.pem"), "wb") as f:
+        f.write(client_key.publickey().export_key())
+
+# Copy the server public key to the general client directory
+client_general_dir = "client"
+with open(os.path.join(client_general_dir, "server_public.pem"), "wb") as f:
+    f.write(server_key.publickey().export_key())
+
+print("Keys and directories generated successfully.")
