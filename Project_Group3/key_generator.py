@@ -3,7 +3,11 @@ CMPT 361 Project
 Shadr Baaba
 Rimneet Cheema
 Jamie McDonald
-This program will generate key pairs for the server and clients
+
+key_generator.py
+
+This program will generate key pairs for the server and clients and save
+them to the corresponding directories
 '''
 
 '''
@@ -53,52 +57,65 @@ client/
 from Crypto.PublicKey import RSA
 import os
 
-# Directory to store keys on the server
+#directory to store keys on the server
 server_key_dir = "server"
 if not os.path.exists(server_key_dir):
     os.makedirs(server_key_dir)
 
-# Generate server keys
-server_key = RSA.generate(2048)
+#generate server keys
+server_key = RSA.generate(2048) #2048 bit
+
+#save server public key
 with open(os.path.join(server_key_dir, "server_public.pem"), "wb") as f:
     f.write(server_key.publickey().export_key())
+
+#save server private key
 with open(os.path.join(server_key_dir, "server_private.pem"), "wb") as f:
     f.write(server_key.export_key())
 
-# Known clients
+#known clients
 clients = ["client1", "client2", "client3", "client4", "client5"]
 
-# Generate keys for each client and create their directories
+#generate keys for each client and create their directories
 for client in clients:
-    client_key = RSA.generate(2048)
+    #generate key for client
+    client_key = RSA.generate(2048) #2048 bit
+    
+    #create directory in server directory for client publics keys
     client_key_dir = os.path.join(server_key_dir, "keys")
     if not os.path.exists(client_key_dir):
         os.makedirs(client_key_dir)
     
+    #save clients puclic key
     with open(os.path.join(client_key_dir, f"{client}_public.pem"), "wb") as f:
         f.write(client_key.publickey().export_key())
     
+    #create client folders for emails, this is also in server.py
+    #just here for good meassures
     client_folder = os.path.join(server_key_dir, client)
     if not os.path.exists(client_folder):
         os.makedirs(client_folder)
 
-    # Create a client-side directory structure
+    #create a client-side directory structure if not already exists
     client_side_dir = "client"
     if not os.path.exists(client_side_dir):
         os.makedirs(client_side_dir)
     
+    #create client specific directory for storing client keys
     client_specific_dir = os.path.join(client_side_dir, f"client_{client}")
     if not os.path.exists(client_specific_dir):
         os.makedirs(client_specific_dir)
     
+    #save client key pairs on client side in client specific directory
     with open(os.path.join(client_specific_dir, f"{client}_private.pem"), "wb") as f:
         f.write(client_key.export_key())
     with open(os.path.join(client_specific_dir, f"{client}_public.pem"), "wb") as f:
         f.write(client_key.publickey().export_key())
 
-# Copy the server public key to the general client directory
+#copy of the server public key to the general client directory
 client_general_dir = "client"
 with open(os.path.join(client_general_dir, "server_public.pem"), "wb") as f:
     f.write(server_key.publickey().export_key())
 
+#print to know key generation was successful
 print("Keys and directories generated successfully.")
