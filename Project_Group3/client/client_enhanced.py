@@ -175,6 +175,8 @@ def client():
         encrypted_ok_message = aes_ecb_encrypt(ok_message.encode(), sym_key)
         hash_obj = SHA256.new(encrypted_ok_message)
         signature = pkcs1_15.new(client_private_key).sign(hash_obj)
+        print(f"signature made with hashing the signing with client private key = {signature}")
+        
         
         client_socket.send(encrypted_ok_message)
         client_socket.send(signature)
@@ -185,13 +187,15 @@ def client():
             #recieve encrpyted menu and decrypt it using aes
             encrypted_menu = client_socket.recv(2048)
             
-            #either server will send menu if correct user or Invalid
-            if "Invalid" in encrypted_menu:
-                print(response)
-                client_socket.close()
-                return    
+            
             
             menu = aes_ecb_decrypt(encrypted_menu, sym_key).decode().strip()
+            
+            #either server will send menu if correct user or Invalid
+            if "Invalid" in menu:
+                print(response)
+                client_socket.close()
+                return                
             print(menu)
             print("")
             
